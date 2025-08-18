@@ -1,3 +1,7 @@
 theme: jekyll-theme-slate
 title: Dash's homepage
 description: Description
+
+collections:
+  writeups:
+    output: true
