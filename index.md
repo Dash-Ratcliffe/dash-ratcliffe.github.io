@@ -3,8 +3,8 @@ layout: default
 title: My Homepage
 ---
 
-Welcome to my homepage! I'm Dash, and this site is where I document my cybersecurity journey, including my Hack The Box machine writeups.
+Welcome to my homepage! I'm Dash, and this site is where I publish all my HackTheBox machine writeups.
 
-Explore my writeups by clicking the link below!
+Explore them all by clicking the link below!
 
-[HTB machine writeups](./writeups.md)
+[HTB Writeups :D](./writeups.md)
