@@ -5,9 +5,4 @@ description: Description
 collections:
   writeups:
     output: true
-
-pages:
-  - title: Home
-    url: /
-  - title: Hack The Box Writeups
-    url: /writeups/
+    permalink: /writeups/:name
