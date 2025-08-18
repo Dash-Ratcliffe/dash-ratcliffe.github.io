@@ -5,4 +5,3 @@ description: Description
 collections:
   writeups:
     output: true
-    permalink: /writeups/:name
