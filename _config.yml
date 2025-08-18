@@ -6,4 +6,8 @@ collections:
   writeups:
     output: true
 
-#test
+pages:
+  - title: Home
+    url: /
+  - title: Hack The Box Writeups
+    url: /writeups/
