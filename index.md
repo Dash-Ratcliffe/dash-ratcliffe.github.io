@@ -7,4 +7,4 @@ Welcome to my homepage! I'm Dash, and this site is where I document my cybersecu
 
 Explore my writeups by clicking the link below!
 
-[HTB machine writeups](./_writeups)
+[HTB machine writeups](./writeups.md)
