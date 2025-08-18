@@ -1,6 +1,6 @@
 ---
 layout: writeup
-title: My First Writeup
+title: TwoMillion
 ---
 
 ## Initial Foothold
