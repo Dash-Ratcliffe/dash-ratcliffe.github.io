@@ -5,4 +5,6 @@ title: My Homepage
 
 Welcome to my homepage! I'm Dash, and this site is where I document my cybersecurity journey, including my Hack The Box machine writeups.
 
-Explore my writeups by clicking the link in the sidebar!
+Explore my writeups by clicking the link below!
+
+[HTB machine writeups](./_writeups)
