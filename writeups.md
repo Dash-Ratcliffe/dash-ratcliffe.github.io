@@ -6,7 +6,7 @@ permalink: /writeups/
 
 # Hack The Box Writeups
 
-Here you'll find a list of all my Hack The Box machine writeups.
+See the complete list of my writeups below, in chronological order.
 
 {% for writeup in site.writeups %}
 * [{{ writeup.title }}]({{ writeup.url }})
