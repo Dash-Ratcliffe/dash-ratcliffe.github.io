@@ -1,5 +1,6 @@
 theme: jekyll-theme-slate
 title: Dash - GitHub Pages
+description: A collection of my write-ups.
 
 collections:
   writeups:
