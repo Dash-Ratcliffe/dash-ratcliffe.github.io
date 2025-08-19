@@ -14,7 +14,7 @@ Details:
 - **Difficulty:** 3.8/10
 - **Key Vulnerabilities:** Broken Access Control, Command Injection, Credential Leakage, Kernel Exploit (CVE-2023-0386)
 
-*Throughout this write-up, I will be using the IP address I was assigned - 10.10.11.221 - if you are assigned a different IP address, make sure to change it when following along.*\
+*Throughout this write-up, I will be using the IP address I was assigned - 10.10.11.221 - if you are assigned a different IP address, make sure to change it when following along.*
 
 Before we can begin any of the steps below, you must be connected to the HackTheBox network. The machines are hosted on a private network that is only accessible via a VPN connection. You can download your unique OpenVPN configuration file from the HackTheBox Access Page. Once downloaded, you can connect from your terminal using the following command:
 ```bash
