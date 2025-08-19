@@ -90,3 +90,19 @@ pre, code {
     color: #DA70D6;
     font-weight: normal;
 }
+
+#main_content h2 {
+  color: var(--clr-text-primary);
+  background: none;
+  border-bottom: 2px solid var(--clr-accent);
+  padding-bottom: 0.3em;
+  margin-bottom: 1.5em;
+  margin-top: 0.8em;
+}
+
+#main_content h1 {
+  color: #79C0FF !important; /* Professional Tech Blue */
+  border-bottom: 1px solid var(--clr-surface);
+  padding-bottom: 0.5em;
+  margin-bottom: 1em;
+}
