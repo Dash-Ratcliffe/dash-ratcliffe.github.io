@@ -3,8 +3,10 @@ layout: default
 title: My Homepage
 ---
 
-### Welcome to my homepage! I'm Dash, and this site is where I publish all my HackTheBox machine writeups.
+# Hack The Box Writeups
 
-### Explore them all by clicking the link below!
+This page hosts all my Hack The Box machine writeups. See the complete list below, in chronological order.
 
-### [HTB Writeups :D](./writeups.md)
+{% for writeup in site.writeups %}
+* [{{ writeup.title }}]({{ writeup.url }})
+{% endfor %}
