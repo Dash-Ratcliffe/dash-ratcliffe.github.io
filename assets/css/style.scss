@@ -3,20 +3,17 @@
 
 // Colour palette
 :root {
-  --clr-bg: #2E3440;
-  --clr-surface: #3B4252;
-  --clr-text-primary: #ECEFF4;
-  --clr-text-secondary: #656E81;
-  --clr-accent: #88C0D0;
-  --clr-code-bg: #292E3A;
+  --clr-bg: #0D1117; 
+  --clr-surface: #161B22;
+  --clr-text-primary: #E6EDF3;
+  --clr-text-secondary: #8B949E;
+  --clr-accent: #00E5FF;
+  --clr-code-bg: #010409;
 }
 
 
 // Import theme default style
 @import "slate";
-
-// Apply styles
-/* --- YOUR CUSTOM STYLES --- */
 
 /* 1. General Body and Text Styling */
 body {
@@ -44,8 +41,6 @@ a:hover {
     text-decoration: underline;
 }
 
-/* 2. Structural Backgrounds (The Main Fix) */
-
 /* Target the header specifically by its ID */
 #header_wrap {
     background: var(--clr-surface); /* Use a solid color instead of the gradient */
@@ -64,7 +59,7 @@ a:hover {
     background: var(--clr-surface); /* Match the header */
 }
 
-/* 3. Code Block Styling */
+/* Code Block Styling */
 pre, code {
     background-color: var(--clr-code-bg);
     color: var(--clr-text-primary);
@@ -77,7 +72,21 @@ pre, code {
     background-color: var(--clr-code-bg) !important;
 }
 
-/* 4. Margin/Width Adjustments */
+/* Margin/Width Adjustments */
 .inner {
     max-width: 1090px;
+}
+
+/* Individual code block elements styling */
+/* Bash tags */
+.highlight .nt {
+    color: #F47067; 
+}
+
+/* JS functions, http 'http' word, operators (/, >) */
+.highlight .kd,
+.highlight .k,
+.highlight .o {
+    color: #DA70D6;
+    font-weight: normal;
 }
