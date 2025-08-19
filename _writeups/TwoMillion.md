@@ -12,7 +12,7 @@ Details:
 - **IP:** 10.10.11.221
 - **OS:** Linux
 - **Difficulty:** 3.8/10
-- **Key Vulnerabilities:** Samba RCE, Cron Job Misconfiguration
+- **Key Vulnerabilities:** ...
 
 *Throughout this write-up, I will be using the IP address I was assigned - 10.10.11.221 - if you are assigned a different IP address, make sure to change it when following along.*\
 **OPEN VPN BIT HERE**
@@ -52,7 +52,7 @@ We should now be able to access the site:
 Initial enumeration of the site began with a manual inspection. Looking through the page revealed two interesting endpoints - `/login` and `/invite`.\
 The login page, while potentially vulnerable, required an email and password, so we need to register first. The invite page confirms that we can sign up, but only with an invite code.\
 While looking through the page's source code for any useful information, I noticed a script `inviteapi.min.js` that was being loaded. After accessing the script and deobfuscating it using Gemini, we could read the `makeInviteCode()` function:
-```JavaScript
+```javascript
 // This function makes a new invite code.
 function makeInviteCode() {
     // Make an AJAX call using jQuery's $.ajax method.
@@ -76,10 +76,69 @@ function makeInviteCode() {
     });
 }
 ```
-
-
+After executing this function in the browser console, we receive a response containing encrypted data. In the JSON, we can see the line `enctype: "ROT13"` which indicates this data was encrypted with a caesar cipher:
+```json
+{ data: "Va beqre gb trarengr gur vaivgr pbqr, znxr n CBFG erdhrfg gb /ncv/i1/vaivgr/trarengr", enctype: "ROT13" }
+```
+The decrypted message tells us to make a POST request `/api/v1/invite/generate` to generate our invite code. We will use BurpSuite for this.\
+After intercepting a request using the proxy and sending a new request (changing the method to POST and the endpoint to `/api/v1/invite/generate`) we receive a Base64 encoded string. My BurpSuite request is below, although yours might be slightly different:
+```http
+POST /api/v1/invite/generate HTTP/1.1
+Host: 2million.htb
+Accept-Language: en-US,en;q=0.9
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Accept-Encoding: gzip, deflate, br
+Connection: keep-alive
+```
+After decoding, we now have our invite code and can sign up.
 
 ## Initial Foothold
+
+We now have our initial foothold on the site - we have an account with access to the dashboard. We will now begin our act of exploitation to bypass security controls.\
+Upon inspecting the dashboard, there is an interesting endpoint `/home/access` which allows you to generate a VPN for your user via an API.\
+Accessing `/api/v1` allows us to enumerate all the available API endpoints which provides us with incredibly useful information regarding admin API endpoints:
+```json
+{
+  "v1": {
+    "user": {
+      "GET": {
+        "/api/v1": "Route List",
+        "/api/v1/invite/how/to/generate": "Instructions on invite code generation",
+        "/api/v1/invite/generate": "Generate invite code",
+        "/api/v1/invite/verify": "Verify invite code",
+        "/api/v1/user/auth": "Check if user is authenticated",
+        "/api/v1/user/vpn/generate": "Generate a new VPN configuration",
+        "/api/v1/user/vpn/regenerate": "Regenerate VPN configuration",
+        "/api/v1/user/vpn/download": "Download OVPN file"
+      },
+      "POST": {
+        "/api/v1/user/register": "Register a new user",
+        "/api/v1/user/login": "Login with existing user"
+      }
+    },
+    "admin": {
+      "GET": {
+        "/api/v1/admin/auth": "Check if user is admin"
+      },
+      "POST": {
+        "/api/v1/admin/vpn/generate": "Generate VPN for specific user"
+      },
+      "PUT": {
+        "/api/v1/admin/settings/update": "Update user settings"
+      }
+    }
+  }
+}
+```
+We can see three different `admin` endpoints, allowing us to access privileged actions. The first two aren't useful to us right now as we aren't an admin, although we will make a PUT request using BurpSuite to the third to see if we can update the settings for our user.\
+After some trial and error
+
+
+
+
+
 
 Identifying the Vulnerability: Explain how you identified the exploitable flaw. "The Nmap scan revealed Samba version 3.0.20. A quick search using searchsploit confirmed this version is vulnerable to a remote command execution flaw (CVE-XXXX-XXXX)."
 The Exploit: Detail the exploitation process step-by-step. If you used a public exploit script, explain the command. If you did it manually, explain the logic.
