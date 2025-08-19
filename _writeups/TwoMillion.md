@@ -1,6 +1,6 @@
 ---
 layout: writeup
-title: TwoMillion: From API to Root
+title: "TwoMillion: From API to Root"
 date: 19/08/2025
 ---
 
