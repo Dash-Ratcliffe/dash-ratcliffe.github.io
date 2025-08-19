@@ -261,7 +261,7 @@ Navigating to this directory and reading the email gives us vital information th
 
 ![Email accessible by admin](../resources/writeups/TwoMillion8.png)
 
-A quick Google search reveals **CVE-2023-0386** as the method they are referring to in this email. We can find a Proof Of Concept (PoC) for this vulnerability on GitHub (here)[https://github.com/puckiestyle/CVE-2023-0386].\
+A quick Google search reveals **CVE-2023-0386** as the method they are referring to in this email. We can find a Proof Of Concept (PoC) for this vulnerability on GitHub [here](https://github.com/puckiestyle/CVE-2023-0386).\
 The directory uses a Makefile to build the code into an executable which, when run, should give us root.\
 Our first step is to clone the repository, zip it, and transfer it to our target machine:
 ```bash
