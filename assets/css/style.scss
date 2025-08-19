@@ -16,39 +16,68 @@
 @import "slate";
 
 // Apply styles
-// General Body Styles
+/* --- YOUR CUSTOM STYLES --- */
+
+/* 1. General Body and Text Styling */
 body {
-  background-color: var(--clr-bg);
-  color: var(--clr-text-primary);
+    background-color: var(--clr-bg);
+    color: var(--clr-text-primary);
+    /* Overriding the theme's default font color */
+    font-family: 'Myriad Pro', Calibri, Helvetica, Arial, sans-serif;
 }
 
-// Header and Footer
-.page-header, .site-footer {
-  background-color: var(--clr-surface);
-  border-color: var(--clr-surface);
-}
-
-// Headings (H1, H2, etc.)
 h1, h2, h3, h4, h5, h6 {
-  color: var(--clr-text-primary);
+    color: var(--clr-text-primary) !important; /* Use !important to override the theme's very specific heading color */
 }
 
-// Links
+/* Overriding project title color specifically */
+#project_title, #project_tagline {
+    color: #fff; /* Keeping this white as it's on a dark header */
+    text-shadow: #111 0px 0px 10px;
+}
+
 a {
-  color: var(--clr-accent);
+    color: var(--clr-accent);
 }
+
 a:hover {
-  text-decoration: underline;
+    text-decoration: underline;
 }
 
-// Code Blocks
+/* 2. Structural Backgrounds (The Main Fix) */
+
+/* Target the header specifically by its ID */
+#header_wrap {
+    background: var(--clr-surface); /* Use a solid color instead of the gradient */
+    border-bottom: 1px solid var(--clr-bg); /* Add a subtle border */
+}
+
+/* Target the main content wrapper by its ID */
+#main_content_wrap {
+    background: var(--clr-bg); /* This is the main background for your content area */
+    border-top: none;
+    border-bottom: none;
+}
+
+/* Target the footer specifically by its ID */
+#footer_wrap {
+    background: var(--clr-surface); /* Match the header */
+}
+
+/* 3. Code Block Styling */
 pre, code {
-  background-color: var(--clr-code-bg);
-  color: var(--clr-text-primary);
-  border: 1px solid var(--clr-surface);
-  border-radius: 5px;
+    background-color: var(--clr-code-bg);
+    color: var(--clr-text-primary);
+    border: 1px solid var(--clr-surface);
+    border-radius: 5px;
 }
 
-.inner{
-  max-width: 1090px;
+/* Override the default syntax highlighting background color */
+.highlight {
+    background-color: var(--clr-code-bg) !important;
+}
+
+/* 4. Margin/Width Adjustments */
+.inner {
+    max-width: 1090px;
 }
