@@ -3,10 +3,24 @@ layout: default
 title: My Homepage
 ---
 
-# Hack The Box Writeups
+## Hack The Box Writeups
 
-### This page hosts all my Hack The Box machine writeups. See the complete list below, in chronological order.
+<p class="page-intro">This page hosts all my Hack The Box machine writeups. Below is a complete list, with the most recent entries first.</p>
 
-{% for writeup in site.writeups %}
-**[{{ writeup.title }}]({{ writeup.url }})**
-{% endfor %}
+<ul class="writeup-list">
+  {% for writeup in site.writeups reversed %}
+    <li class="writeup-item">
+      <div class="writeup-meta">
+        <span class="writeup-date">{{ writeup.date | date: "%B %d, %Y" }}</span>
+      </div>
+      <h3 class="writeup-title">
+        <a href="{{ writeup.url }}">{{ writeup.title }}</a>
+      </h3>
+      <div class="writeup-tags">
+        {% for tag in writeup.tags %}
+          <span class="tag">{{ tag }}</span>
+        {% endfor %}
+      </div>
+    </li>
+  {% endfor %}
+</ul>
