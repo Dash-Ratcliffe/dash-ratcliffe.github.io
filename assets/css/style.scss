@@ -116,3 +116,67 @@ pre, code {
 #project_title a:hover {
   text-decoration: underline;
 }
+
+
+/* --- Custom Homepage Write-up List Styles --- */
+
+.page-intro {
+  font-size: 1.1em;
+  color: var(--clr-text-secondary);
+  margin-bottom: 2em;
+  border-left: 3px solid var(--clr-surface);
+  padding-left: 1em;
+}
+
+.writeup-list {
+  list-style: none; /* Removes the default bullet points */
+  padding: 0;
+  margin: 0;
+}
+
+.writeup-item {
+  border-bottom: 1px solid var(--clr-surface);
+  padding: 1.5em 0;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.writeup-item:hover {
+  background-color: var(--clr-surface); /* Subtle hover effect for interactivity */
+}
+
+.writeup-meta {
+  font-size: 0.9em;
+  color: var(--clr-text-secondary);
+  margin-bottom: 0.5em;
+}
+
+.writeup-title {
+  margin: 0;
+  font-size: 1.5em;
+  font-weight: bold;
+}
+
+.writeup-title a {
+  text-decoration: none;
+  color: var(--clr-text-primary);
+}
+
+.writeup-title a:hover {
+  color: var(--clr-accent);
+  text-decoration: underline;
+}
+
+.writeup-tags {
+  margin-top: 1em;
+}
+
+.tag {
+  display: inline-block;
+  background-color: var(--clr-surface);
+  color: var(--clr-text-secondary);
+  padding: 0.3em 0.8em;
+  border-radius: 15px; /* Creates the pill shape */
+  font-size: 0.8em;
+  margin-right: 0.5em;
+  margin-bottom: 0.5em;
+}
