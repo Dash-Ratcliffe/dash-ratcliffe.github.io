@@ -2,6 +2,7 @@
 layout: writeup
 title: "TwoMillion: From API to Root"
 date: 19/08/2025
+tags: [Linux, Web, API, Command Injection, Kernel Exploit]
 ---
 
 ## Overview
