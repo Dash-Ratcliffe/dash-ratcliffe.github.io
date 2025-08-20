@@ -106,3 +106,13 @@ pre, code {
   padding-bottom: 0.5em;
   margin-bottom: 1em;
 }
+
+#project_title a {
+  color: inherit; /* This makes the link inherit the white color of its parent (the h1) */
+  text-decoration: none; /* This removes the default underline */
+}
+
+/* Adds a simple underline when a user hovers over the title */
+#project_title a:hover {
+  text-decoration: underline;
+}
